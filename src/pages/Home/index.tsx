@@ -83,7 +83,18 @@ export function Home() {
 	// Sign in the user anonymously
 	useEffect(() => {
 
+		/**
+		 * Signs in the user or reuses an existing session
+		 */
 		async function signInUserAnonymously() {
+
+			const { data: { user } } = await supabase.auth.getUser()
+
+			if (user) {
+				setUser(user);
+				return;
+			}
+
 			const { data, error } = await supabase.auth.signInAnonymously()
 			if (error) {
 				console.error('Error signing in:', error);
