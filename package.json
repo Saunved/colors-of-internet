@@ -1,0 +1,28 @@
+{
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"supabase": "supabase"
+	},
+	"dependencies": {
+		"@preact/signals": "^2.0.4",
+		"@supabase/supabase-js": "^2.49.4",
+		"@tailwindcss/vite": "^4.1.6",
+		"lodash.debounce": "^4.0.8",
+		"lodash.throttle": "^4.1.1",
+		"preact": "^10.25.3",
+		"preact-iso": "^2.9.1",
+		"tailwindcss": "^4.1.6"
+	},
+	"devDependencies": {
+		"@preact/preset-vite": "^2.9.3",
+		"supabase": "^2.22.12",
+		"vite": "^6.0.4"
+	},
+	"eslintConfig": {
+		"extends": "preact"
+	}
+}
