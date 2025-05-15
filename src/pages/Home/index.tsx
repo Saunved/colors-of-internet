@@ -60,19 +60,6 @@ export function Home() {
 	}, [])
 
 	useEffect(() => {
-		const debouncedHandleResize = debounce(() => {
-			window.location.reload();
-		}, 1000);
-
-		window.addEventListener('resize', debouncedHandleResize);
-
-		return () => {
-			window.removeEventListener('resize', debouncedHandleResize);
-			debouncedHandleResize.cancel();
-		};
-	}, []);
-
-	useEffect(() => {
 		lastClickedTimestampRef.current = lastClickedTimestamp;
 	}, [lastClickedTimestamp])
 
