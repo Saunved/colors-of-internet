@@ -30,7 +30,6 @@ export function Home() {
 	const [gridHeight, setGridHeight] = useState(0);
 	const [cellsToLoad, setCellsToLoad] = useState(0);
 	const [cells, setCells] = useState([]);
-	const [infoOpen, setInfoOpen] = useState(false);
 	const [lastClickedTimestamp, setUserLastClickTimestamp] = useState(0);
 
 	const latestPendingCellUpdates = useLatest(pendingCellUpdates);
