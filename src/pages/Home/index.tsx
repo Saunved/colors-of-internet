@@ -1,11 +1,10 @@
 import { signal, batch } from '@preact/signals';
 import Cell from '../../components/Cell';
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import throttle from 'lodash.throttle';
 import { createClient } from '@supabase/supabase-js';
-import { DbGrid } from '../../types/grid';
 import Info from '../../components/Info';
-import debounce from 'lodash.debounce';
+import { useLatest } from 'react-use';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 const updatesChannel = supabase.channel('grid-updates-channel', {
@@ -19,27 +18,25 @@ const MAX_SIZE = 40 * 40;
 export function Home() {
 
 	const [gridNo, setGridNo] = useState(-1);
-	const [dbGrid, setDbGrid] = useState<DbGrid | null>(null)
-	const dbGridRef = useRef<DbGrid | null>(null);
 	const [user, setUser] = useState(null);
 	const [totalUsers, setTotalUsers] = useState(0);
 	const [pendingCellUpdates, setPendingCellUpdates] = useState({});
-	const pendingCellUpdatesRef = useRef({});
+
 	const [gridFetchingError, setGridFetchingError] = useState(false);
 	const cooldowns = useMemo(() => Array.from({ length: MAX_SIZE }, () => signal(0)), []);
 	const opacity = useMemo(() => Array.from({ length: MAX_SIZE }, () => signal(0.2)), []);
 	const cellVersions = useMemo(() => Array.from({ length: MAX_SIZE }, () => signal(0)), []);
 	const [syncIsInProgress, setSyncIsInProgress] = useState(false);
-	const syncIsInProgressRef = useRef(false);
 	const [gridWidth, setGridWidth] = useState(0);
 	const [gridHeight, setGridHeight] = useState(0);
 	const [cellsToLoad, setCellsToLoad] = useState(0);
 	const [cells, setCells] = useState([]);
-	const [broadCastCache, setBroadCastCache] = useState([]);
-	const broadCastCacheRef = useRef([]);
 	const [infoOpen, setInfoOpen] = useState(false);
 	const [lastClickedTimestamp, setUserLastClickTimestamp] = useState(0);
-	const lastClickedTimestampRef = useRef(0);
+
+	const latestPendingCellUpdates = useLatest(pendingCellUpdates);
+	const latestSyncInProgress = useLatest(syncIsInProgress);
+	const latestlastClickedTimestamp = useLatest(lastClickedTimestamp);
 
 	// @onLoad
 	// We aren't handling responsiveness yet.
@@ -58,26 +55,6 @@ export function Home() {
 
 		determineGridChunkToLoad();
 	}, [])
-
-	useEffect(() => {
-		lastClickedTimestampRef.current = lastClickedTimestamp;
-	}, [lastClickedTimestamp])
-
-	useEffect(() => {
-		broadCastCacheRef.current = broadCastCache;
-	}, broadCastCache)
-
-	useEffect(() => {
-		pendingCellUpdatesRef.current = pendingCellUpdates;
-	}, [pendingCellUpdates])
-
-	useEffect(() => {
-		dbGridRef.current = dbGrid;
-	}, [dbGrid])
-
-	useEffect(() => {
-		syncIsInProgressRef.current = syncIsInProgress;
-	}, [syncIsInProgress])
 
 	// @onLoad
 	// Sign in the user anonymously
@@ -116,7 +93,6 @@ export function Home() {
 		}
 
 		const getLatestGrid = async () => {
-			setBroadCastCache((prev) => prev.filter(b => !b.stale).map((b) => { return { ...b, stale: true } }));
 
 			try {
 				const { data: grid, error: gridError } = await supabase
@@ -153,7 +129,6 @@ export function Home() {
 
 				setCells(cellsData);
 				setGridNo(grid.grid_no)
-				setDbGrid(grid);
 
 			} catch (error) {
 				return null;
@@ -165,7 +140,7 @@ export function Home() {
 		// Poll periodically so we always have the latest grid
 		// Don't sync to DB if the user is still actively clicking, otherwise this causes a fake flash
 		setInterval(() => {
-			if (!syncIsInProgressRef.current && lastClickedTimestampRef.current + 1000 < Date.now()) {
+			if (!latestSyncInProgress.current && latestlastClickedTimestamp.current + 1000 < Date.now()) {
 				getLatestGrid();
 			}
 		}, 3000)
@@ -177,7 +152,7 @@ export function Home() {
 
 		async function syncToDb() {
 
-			const _pendingCellUpdates = pendingCellUpdatesRef.current;
+			const _pendingCellUpdates = latestPendingCellUpdates.current;
 
 
 			if (Object.keys(_pendingCellUpdates).length === 0 || !user) {
@@ -260,11 +235,9 @@ export function Home() {
 			})
 			.on('broadcast', { event: 'grid-updates' }, (ev) => {
 
-				if (pendingCellUpdatesRef.current.hasOwnProperty(ev.payload.pos)) {
+				if (latestPendingCellUpdates.current.hasOwnProperty(ev.payload.pos)) {
 					return;
 				}
-
-				setBroadCastCache((prev) => [...prev, ev.payload]);
 
 				if (ev.payload.pos < cellsToLoad) {
 					requestAnimationFrame(() => {
