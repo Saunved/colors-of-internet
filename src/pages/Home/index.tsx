@@ -5,6 +5,9 @@ import throttle from 'lodash.throttle';
 import { createClient } from '@supabase/supabase-js';
 import Info from '../../components/Info';
 import { useLatest, useMount } from 'react-use';
+import { generateColor } from '../../helpers/colors';
+
+const MAX_SIZE = 40 * 40;
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 const updatesChannel = supabase.channel('grid-updates-channel', {
@@ -13,15 +16,11 @@ const updatesChannel = supabase.channel('grid-updates-channel', {
 	}
 })
 
-const MAX_SIZE = 40 * 40;
-
 export function Home() {
-
 	const [gridNo, setGridNo] = useState(-1);
 	const [user, setUser] = useState(null);
 	const [totalUsers, setTotalUsers] = useState(0);
 	const [pendingCellUpdates, setPendingCellUpdates] = useState({});
-
 	const [gridFetchingError, setGridFetchingError] = useState(false);
 	const cooldowns = useMemo(() => Array.from({ length: MAX_SIZE }, () => signal(0)), []);
 	const opacity = useMemo(() => Array.from({ length: MAX_SIZE }, () => signal(0.2)), []);
@@ -248,48 +247,6 @@ export function Home() {
 		return () => updatesChannel.unsubscribe();
 	}, [user]);
 
-	function generateColor(idx = 0, vibrancy = "high") {
-		// Configure color parameters based on vibrancy level
-		let saturation, lightness;
-
-		switch (vibrancy) {
-			case "neon":
-				saturation = 100;
-				lightness = 60;
-				break;
-			case "vibrant":
-				saturation = 90;
-				lightness = 55;
-				break;
-			case "high":
-				saturation = 85;
-				lightness = 50;
-				break;
-			case "medium":
-				saturation = 70;
-				lightness = 60;
-				break;
-			case "pastel":
-				saturation = 70;
-				lightness = 80;
-				break;
-			default:
-				saturation = 85;
-				lightness = 50;
-		}
-
-		// Generate well-distributed hues across the spectrum using prime numbers
-		// to avoid repetitive patterns
-		const hueRange = 360;
-		const goldenRatioConjugate = 0.618033988749895;
-
-		// Use both the index and a prime-based offset to create good distribution
-		const hue = (((idx * goldenRatioConjugate) % 1) * hueRange +
-			((idx * 31 + 137) % hueRange)) % hueRange;
-
-		return `hsl(${Math.round(hue)}, ${saturation}%, ${lightness}%, #a#)`;
-	}
-
 	const createColors = () => {
 		return Array(MAX_SIZE).fill(0).map((_, i) => generateColor(i, 'medium'));
 	};
@@ -320,18 +277,10 @@ export function Home() {
 			}).then(() => console.debug("Sent", pos, newValue))
 
 		opacity[pos].value = newValue ? 1 : 0.1;
-
 		setUserLastClickTimestamp(Date.now());
 	}
 
-	function handleInfoClick() {
-		if (!infoOpen) {
-			setInfoOpen(true);
-		}
-		else {
-			setInfoOpen(false);
-		}
-	}
+
 
 	const throttledHandleCellClick = throttle(handleCellClick, 250);
 
@@ -347,29 +296,13 @@ export function Home() {
 		<div className="">
 			<div className="px-4 pb-6">
 				<div className="p-1 flex justify-between items-center border-b border-gray-500 py-4">
-					<h1 className="text-2xl font-bold">
-						Colors of the Internet <span className="text-xs">by Saunved</span>
-						<span className="text-xs"> | {totalUsers} online now</span>
+					<h1 className="text-xl font-bold">
+						Colors of the Internet
+						<span className="text-xs"> <span className="mx-1">|</span> {totalUsers} online now</span>
 					</h1>
-					<button
-						className="mt-2 flex items-center justify-center hover:bg-gray-600 cursor-pointer border p-0.5 rounded-xl"
-						onClick={handleInfoClick}
-					>
-						<span className="ml-2">Info</span>
-						{
-							!infoOpen ? <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-gray-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-								<path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-							</svg> :
-								<svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-gray-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-									<path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-								</svg>
-						}
-					</button>
+					<Info usersOnline={totalUsers} />
 				</div>
 			</div>
-			{
-				infoOpen ? <Info usersOnline={totalUsers} /> : null
-			}
 
 			<div className={`min-h-dvh h-full max-h-dvh min-w-full max-w-full`}
 				style={{
