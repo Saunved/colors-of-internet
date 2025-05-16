@@ -53,7 +53,6 @@ export function Home() {
 		determineGridChunkToLoad();
 	})
 
-
 	useMount(() => {
 		async function createOrReuseUserSession() {
 
@@ -150,7 +149,6 @@ export function Home() {
 		}, 3000)
 
 	}, [cellsToLoad]);
-
 
 	useEffect(() => {
 
@@ -280,8 +278,6 @@ export function Home() {
 		setUserLastClickTimestamp(Date.now());
 	}
 
-
-
 	const throttledHandleCellClick = throttle(handleCellClick, 250);
 
 	if (gridFetchingError) {
@@ -324,7 +320,6 @@ export function Home() {
 					/>
 				))}
 			</div>
-
 		</div>
 	);
 }
