@@ -156,18 +156,16 @@ export function Home() {
 	useEffect(() => {
 
 		async function syncToDb() {
+			const pendingUpdates = latestPendingCellUpdates.current;
 
-			const _pendingCellUpdates = latestPendingCellUpdates.current;
-
-
-			if (Object.keys(_pendingCellUpdates).length === 0 || !user) {
+			if (Object.keys(pendingUpdates).length === 0 || !user) {
 				return;
 			}
 
 			setSyncIsInProgress(true);
-			const positions = Object.keys(_pendingCellUpdates).map((k) => k);
-			const ids = Object.keys(_pendingCellUpdates).map((k) => _pendingCellUpdates[k].id);
-			const statuses = Object.keys(_pendingCellUpdates).map((k) => _pendingCellUpdates[k].value);
+			const positions = Object.keys(pendingUpdates).map((k) => k);
+			const ids = Object.keys(pendingUpdates).map((k) => pendingUpdates[k].id);
+			const statuses = Object.keys(pendingUpdates).map((k) => pendingUpdates[k].value);
 
 			try {
 				const { data, error } = await supabase.rpc('bulk_update_cells', {
@@ -176,7 +174,7 @@ export function Home() {
 				})
 
 				if (error) {
-					console.log("There was an error syncing your changes")
+					console.error("There was an error syncing your changes")
 					return;
 				}
 
@@ -200,7 +198,6 @@ export function Home() {
 			}
 
 			setSyncIsInProgress(false);
-
 		}
 
 		const interval = setInterval(() => {
@@ -227,15 +224,17 @@ export function Home() {
 			})
 			.on('broadcast', { event: 'grid-updates' }, (ev) => {
 
-				if (latestPendingCellUpdates.current.hasOwnProperty(ev.payload.pos)) {
+				const { pos: cellPosition, value: receivedValue, version: receivedVersion } = ev.payload;
+
+				if (latestPendingCellUpdates.current.hasOwnProperty(cellPosition)) {
 					return;
 				}
 
-				if (ev.payload.pos < cellsToLoad) {
+				if (cellPosition < cellsToLoad) {
 					requestAnimationFrame(() => {
-						if (cellVersions[ev.payload.pos].value < ev.payload.version) {
-							cellVersions[ev.payload.pos].value = ev.payload.version;
-							opacity[ev.payload.pos].value = ev.payload.value ? 1 : 0.1;
+						if (cellVersions[cellPosition].value < receivedVersion) {
+							cellVersions[cellPosition].value = receivedVersion;
+							opacity[cellPosition].value = receivedValue ? 1 : 0.1;
 						}
 					});
 				}
