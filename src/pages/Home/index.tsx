@@ -1,6 +1,6 @@
 import { signal, batch } from '@preact/signals';
 import Cell from '../../components/Cell';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import throttle from 'lodash.throttle';
 import { createClient } from '@supabase/supabase-js';
 import Info from '../../components/Info';
@@ -31,16 +31,18 @@ export function Home() {
 	const [cellsToLoad, setCellsToLoad] = useState(0);
 	const [cells, setCells] = useState([]);
 	const [lastClickedTimestamp, setUserLastClickTimestamp] = useState(0);
+	const [tabIsActive, setTabIsActive] = useState(true);
 
 	const latestPendingCellUpdates = useLatest(pendingCellUpdates);
 	const latestSyncInProgress = useLatest(syncIsInProgress);
 	const latestlastClickedTimestamp = useLatest(lastClickedTimestamp);
+	const simulationIntervalRef = useRef(null);
 
 	useMount(() => {
 
 		function determineGridChunkToLoad() {
 			const clientWidth = window.innerWidth;
-			const clientHeight = window.innerHeight - window.innerHeight * 0.1;
+			const clientHeight = window.innerHeight + window.innerHeight * 0.2;
 			const gridHeight = Math.floor(clientHeight / 48);
 			const gridWidth = Math.floor(clientWidth / 48);
 			const cellsToLoad = gridHeight * gridWidth;
@@ -86,6 +88,60 @@ export function Home() {
 			})
 		}, 500)
 	})
+
+	useMount(() => {
+		// Function to handle visibility change
+		const handleVisibilityChange = () => {
+			console.log("Tab is active:", !document.hidden);
+			setTabIsActive(!document.hidden);
+		};
+
+		// Add event listener
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+
+		// Clean up function
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+		};
+	});
+
+	useEffect(() => {
+		console.log("Tab is active:", tabIsActive);
+		if (tabIsActive) {
+			updatesChannel.track({ userStatus: 'online', userId: user?.id })
+		} else {
+			console.log("Tab is inactive, untracking presence");
+			updatesChannel.untrack();
+		}
+	}, [tabIsActive])
+
+	useEffect(() => {
+
+		if (totalUsers > 5 || !gridNo || !user || !tabIsActive) {
+			if (simulationIntervalRef.current) {
+				clearInterval(simulationIntervalRef.current);
+				simulationIntervalRef.current = null;
+			}
+			return;
+		}
+
+		simulationIntervalRef.current = setInterval(() => {
+			// The more users, the slower we want simulation to be.
+			const randomDelay = 500 + Math.random() * (300 * totalUsers);
+			setTimeout(() => {
+				if (!cells.length) return;
+				const randomIndex = Math.floor(Math.random() * cells.length);
+				const cell = cells[randomIndex];
+				if (cell && cooldowns[randomIndex].value === 0) {
+					handleCellClick(cell.id, randomIndex, true);
+				}
+			}, randomDelay);
+		}, 1000);
+
+		return () => simulationIntervalRef.current ? clearInterval(simulationIntervalRef.current) : null;
+
+
+	}, [totalUsers, gridNo, user, lastClickedTimestamp, tabIsActive])
 
 	// Obtain the latest grid from the database on startup
 	useEffect(() => {
@@ -216,7 +272,7 @@ export function Home() {
 			.on('presence', { event: 'sync' }, () => {
 				const newState = updatesChannel.presenceState()
 				// @ts-ignore
-				setTotalUsers(Object.keys(newState).filter((key) => !!newState[key][0]?.userId).length)
+				setTotalUsers(Object.keys(newState).filter((key) => newState[key][0]?.userStatus === 'online' && !!newState[key][0]?.userId).length)
 			})
 			.on('broadcast', { event: 'grid-updates' }, (ev) => {
 
@@ -250,14 +306,14 @@ export function Home() {
 
 	const color = useMemo(createColors, []);
 
-	async function handleCellClick(id: string, pos: number) {
+	async function handleCellClick(id: string, pos: number, clickIsSimulated = false) {
 		setUserLastClickTimestamp(Date.now());
 		const currentValue = opacity[pos].value > 0.5;
 		const newValue = !currentValue;
 
 		setPendingCellUpdates((prev) => ({ ...prev, [pos]: { id, value: newValue } }));
 
-		cooldowns[pos].value = Date.now() + 4000;
+		cooldowns[pos].value = Date.now() + (!clickIsSimulated ? 4000 : 0);
 
 		// This updates it in the state for everyone else
 		updatesChannel
@@ -293,7 +349,8 @@ export function Home() {
 				<div className="p-1 flex justify-between items-center border-b border-gray-500 py-4">
 					<h1 className="text-xl font-bold">
 						Colors of the Internet
-						<span className="text-xs"> <span className="mx-1">|</span> {totalUsers} online now</span>
+						<span className="text-xs"> <span className="mx-1">|</span> {totalUsers} online</span>
+						<span className="text-xs"><span className="mx-1">|</span> Simulating</span>
 					</h1>
 					<Info usersOnline={totalUsers} />
 				</div>
@@ -306,7 +363,7 @@ export function Home() {
 					width: '100%',
 					maxWidth: '600px',
 					aspectRatio: '1 / 1'
-				}}
+				}} q
 			>
 				{user && !gridFetchingError && gridNo > 0 && cells.map((c, pos) => (
 					<Cell

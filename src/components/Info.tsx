@@ -63,6 +63,10 @@ export default function Info({ usersOnline }) {
                         </p>
 
                         <p className="mb-4">
+                            "Simulating" implies that some clicks are being simulated. This usually happens in cases when there aren't enough users for creating a fun effect.
+                        </p>
+
+                        <p className="mb-4">
                             I haven't added any particular checks for bots (e.g. with captchas or Cloudflare turnstile) since this project is just for fun.
                         </p>
                     </section>
