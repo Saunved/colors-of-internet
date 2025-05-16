@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import throttle from 'lodash.throttle';
 import { createClient } from '@supabase/supabase-js';
 import Info from '../../components/Info';
-import { useLatest } from 'react-use';
+import { useLatest, useMount } from 'react-use';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
 const updatesChannel = supabase.channel('grid-updates-channel', {
@@ -38,9 +38,7 @@ export function Home() {
 	const latestSyncInProgress = useLatest(syncIsInProgress);
 	const latestlastClickedTimestamp = useLatest(lastClickedTimestamp);
 
-	// @onLoad
-	// We aren't handling responsiveness yet.
-	useEffect(() => {
+	useMount(() => {
 
 		function determineGridChunkToLoad() {
 			const clientWidth = window.innerWidth;
@@ -54,16 +52,11 @@ export function Home() {
 		}
 
 		determineGridChunkToLoad();
-	}, [])
+	})
 
-	// @onLoad
-	// Sign in the user anonymously
-	useEffect(() => {
 
-		/**
-		 * Signs in the user or reuses an existing session
-		 */
-		async function signInUserAnonymously() {
+	useMount(() => {
+		async function createOrReuseUserSession() {
 
 			const { data: { user } } = await supabase.auth.getUser()
 
@@ -81,9 +74,21 @@ export function Home() {
 			}
 		}
 
-		signInUserAnonymously();
-	}, [])
+		createOrReuseUserSession();
+	})
 
+	// This is a centralized cooldown tracker
+	// that removes cooldowns from cells. It's not super accurate,
+	// but it works for what we need.
+	useMount(() => {
+		setInterval(() => {
+			cooldowns.forEach((cooldown, i) => {
+				if (cooldown.value > 0 && cooldown.value < Date.now()) {
+					cooldown.value = 0;
+				}
+			})
+		}, 500)
+	})
 
 	// Obtain the latest grid from the database on startup
 	useEffect(() => {
@@ -205,19 +210,6 @@ export function Home() {
 		return () => clearInterval(interval)
 
 	}, [user]);
-
-	// This is a centralized cooldown tracker
-	// that removes cooldowns from cells. It's not super accurate,
-	// but it works for what we need.
-	useEffect(() => {
-		setInterval(() => {
-			cooldowns.forEach((cooldown, i) => {
-				if (cooldown.value > 0 && cooldown.value < Date.now()) {
-					cooldown.value = 0;
-				}
-			})
-		}, 500)
-	}, [])
 
 	// Broadcast user clicks globally after the user is logged in
 	// Also sync total users count (presence)
