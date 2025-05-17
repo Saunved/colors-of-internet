@@ -2,7 +2,7 @@ import { useState } from "preact/hooks";
 import { ChevronDown } from "./icons/chevron-down";
 import { ChevronUp } from "./icons/chevron-up";
 
-export default function Info({ usersOnline }) {
+export default function Info({ usersOnline, simulationIsOn }) {
 
     const [infoOpen, setInfoOpen] = useState(false);
 
@@ -32,8 +32,13 @@ export default function Info({ usersOnline }) {
 
             {
                 infoOpen &&
-                <div className="absolute top-20 left-0 bottom-2 w-full h-screen scroll-auto px-4 py-8 text-white"
+                <div className="absolute top-20 left-0 w-full min-h-screen overflow-y-auto px-4 py-8 text-white"
                     style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}>
+
+                    <section className="mb-4 text-sm">
+                        <p>Users online: {usersOnline}</p>
+                        <p>Simulation status: {simulationIsOn ? "ON" : "OFF"}</p>
+                    </section>
 
                     <section className="text-xl mb-8">
                         <p className="mb-4">

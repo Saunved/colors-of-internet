@@ -36,6 +36,7 @@ export function Home() {
 	const latestPendingCellUpdates = useLatest(pendingCellUpdates);
 	const latestSyncInProgress = useLatest(syncIsInProgress);
 	const latestlastClickedTimestamp = useLatest(lastClickedTimestamp);
+	const [simulationIsOn, setSimulationIsOn] = useState(false);
 	const simulationIntervalRef = useRef(null);
 	const [userHasSubscribed, setUserHasSubscribed] = useState(false);
 
@@ -123,10 +124,12 @@ export function Home() {
 			if (simulationIntervalRef.current) {
 				clearInterval(simulationIntervalRef.current);
 				simulationIntervalRef.current = null;
+				setSimulationIsOn(false)
 			}
 			return;
 		}
 
+		setSimulationIsOn(true)
 		simulationIntervalRef.current = setInterval(() => {
 			// The more users, the slower we want simulation to be.
 			const randomDelay = 350 * totalUsers;
@@ -353,9 +356,8 @@ export function Home() {
 					<h1 className="text-xl font-bold">
 						Colors of the Internet
 						<span className="text-xs"> <span className="mx-1">|</span> {totalUsers} online</span>
-						<span className="text-xs"><span className="mx-1">|</span> Simulating</span>
 					</h1>
-					<Info usersOnline={totalUsers} />
+					<Info usersOnline={totalUsers} simulationIsOn={simulationIsOn} />
 				</div>
 			</div>
 
