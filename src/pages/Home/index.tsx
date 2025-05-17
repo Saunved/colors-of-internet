@@ -37,6 +37,7 @@ export function Home() {
 	const latestSyncInProgress = useLatest(syncIsInProgress);
 	const latestlastClickedTimestamp = useLatest(lastClickedTimestamp);
 	const simulationIntervalRef = useRef(null);
+	const [userHasSubscribed, setUserHasSubscribed] = useState(false);
 
 	useMount(() => {
 
@@ -103,11 +104,15 @@ export function Home() {
 	});
 
 	useEffect(() => {
-		console.log("Tab is active:", tabIsActive);
+		if (!userHasSubscribed) {
+			return;
+		}
+
 		if (tabIsActive) {
+			console.debug("User online")
 			updatesChannel.track({ userStatus: 'online', userId: user?.id })
 		} else {
-			console.log("Tab is inactive, untracking presence");
+			console.debug("User offline")
 			updatesChannel.untrack();
 		}
 	}, [tabIsActive])
@@ -291,10 +296,11 @@ export function Home() {
 			)
 			.subscribe(async (status) => {
 				if (status !== 'SUBSCRIBED') { return }
+				setUserHasSubscribed(true);
 				await updatesChannel.track({ userStatus: 'online', userId: user?.id })
 			});
 
-		return () => updatesChannel.unsubscribe();
+		return () => updatesChannel.unsubscribe().then(() => setUserHasSubscribed(false));
 	}, [user]);
 
 	const createColors = () => {
