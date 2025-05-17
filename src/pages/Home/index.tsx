@@ -127,7 +127,7 @@ export function Home() {
 
 		simulationIntervalRef.current = setInterval(() => {
 			// The more users, the slower we want simulation to be.
-			const randomDelay = 500 + Math.random() * (300 * totalUsers);
+			const randomDelay = 350 * totalUsers;
 			setTimeout(() => {
 				if (!cells.length) return;
 				const randomIndex = Math.floor(Math.random() * cells.length);
@@ -136,7 +136,7 @@ export function Home() {
 					handleCellClick(cell.id, randomIndex, true);
 				}
 			}, randomDelay);
-		}, 1000);
+		}, 350 * totalUsers);
 
 		return () => simulationIntervalRef.current ? clearInterval(simulationIntervalRef.current) : null;
 
