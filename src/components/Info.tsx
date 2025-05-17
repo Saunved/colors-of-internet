@@ -38,7 +38,7 @@ export default function Info({ usersOnline }) {
                     <section className="text-xl mb-8">
                         <p className="mb-4">
                             tldr;<br />
-                            This is a mini-project I built to deepen my understanding of real-time data synchronization through concurrency handling, optimistic UI updates, and versioning. Continue reading for more information.
+                            This is a mini-project I (<a className="text-blue-500 underline" href="https://saunved.com" target="_blank">Saunved</a>) built to deepen my understanding of real-time data synchronization through concurrency handling, optimistic UI updates, and versioning. Continue reading for more information.
                         </p>
 
                         <p className="mb-4">
