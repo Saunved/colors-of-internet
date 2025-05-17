@@ -7,4 +7,4 @@
 -   `npm run preview` - Starts a server at http://localhost:4173/ to test production build locally
 
 
-Get out src/components/info for more information about this project.
+Check out src/components/info for more information about this project.
