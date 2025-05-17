@@ -90,16 +90,13 @@ export function Home() {
 	})
 
 	useMount(() => {
-		// Function to handle visibility change
 		const handleVisibilityChange = () => {
 			console.log("Tab is active:", !document.hidden);
 			setTabIsActive(!document.hidden);
 		};
 
-		// Add event listener
 		document.addEventListener("visibilitychange", handleVisibilityChange);
 
-		// Clean up function
 		return () => {
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 		};
